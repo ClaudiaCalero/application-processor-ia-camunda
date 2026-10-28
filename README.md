@@ -1,4 +1,4 @@
-AI-Powered Request Processing
+# AI-Powered Request Processing
 
 **A request management application built with Java, Spring Boot, Camunda 8, PostgreSQL and a locally running AI model.**
 
