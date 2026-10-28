@@ -1,0 +1,25 @@
+
+# Java y Maven
+target/
+*.class
+*.jar
+*.war
+
+# IntelliJ IDEA
+.idea/
+*.iml
+out/
+
+# Variables de entorno y secretos
+.env
+.env.*
+!.env.example
+application-local.yml
+application-local.yaml
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
