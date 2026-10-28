@@ -4,7 +4,6 @@ import com.claudia.tramitador.enums.RequestStatus;
 import jakarta.persistence.*;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 
 @Entity
 public class Request {
