@@ -30,7 +30,7 @@ public class RequestController {
     public Request createRequest(@Valid @RequestBody CreateRequest request) {
         Request req = repository.save(new Request(request.text()));
         camunda.newCreateInstanceCommand()
-                .bpmnProcessId("process-request")
+                .bpmnProcessId("process-application")
                 .latestVersion()
                 .variables(Map.of("requestId", req.getId()))
                 .send()
