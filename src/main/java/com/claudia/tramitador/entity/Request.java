@@ -1,37 +1,39 @@
 package com.claudia.tramitador.entity;
 
+import com.claudia.tramitador.enums.RequestStatus;
 import jakarta.persistence.*;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name="requests")
 public class Request {
 
     @Id
     @GeneratedValue(strategy= GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(length = 5000)
     private String text;
 
-    private String category = "PENDING";
-    private String status = "RECEIVED";
-
+    private String category;
     private Double score;
 
-    @Column(columnDefinition = "TEXT")
-    private String result;
+    @Column(length = 2000)
+    private String summary;
 
-    private LocalDateTime createdAt;
+    private Double amount;
+    private boolean reviewedByPerson;
 
-    public Request() {}
+    @Enumerated(EnumType.STRING)
+    private RequestStatus status = RequestStatus.RECEIVED;
 
-    @PrePersist
-    public void prePersist() {
-        if(createdAt == null) {
-            createdAt = LocalDateTime.now();
-        }
+    private Instant createdAt = Instant.now();
+
+    public Request() {
+    }
+    public Request(String text) {
+        this.text = text;
     }
 
     public Long getId() {
@@ -58,14 +60,6 @@ public class Request {
         this.category = category;
     }
 
-    public String getStatus() {
-        return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
-    }
-
     public Double getScore() {
         return score;
     }
@@ -74,19 +68,43 @@ public class Request {
         this.score = score;
     }
 
-    public String getResult() {
-        return result;
+    public String getSummary() {
+        return summary;
     }
 
-    public void setResult(String result) {
-        this.result = result;
+    public void setSummary(String summary) {
+        this.summary = summary;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public Double getAmount() {
+        return amount;
+    }
+
+    public void setAmount(Double amount) {
+        this.amount = amount;
+    }
+
+    public boolean isReviewedByPerson() {
+        return reviewedByPerson;
+    }
+
+    public void setReviewedByPerson(boolean reviewedByPerson) {
+        this.reviewedByPerson = reviewedByPerson;
+    }
+
+    public RequestStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(RequestStatus status) {
+        this.status = status;
+    }
+
+    public Instant getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(LocalDateTime createdAt) {
+    public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
     }
 }

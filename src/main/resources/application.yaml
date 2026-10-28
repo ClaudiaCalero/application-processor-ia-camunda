@@ -8,13 +8,11 @@ spring:
   datasource:
     url: jdbc:postgresql://localhost:5432/tramitador
     username: postgres
-    password: ${DB_PASSWORD:postgres}
+    password: postgres
 
   jpa:
     hibernate:
       ddl-auto: update
-    open-in-view: false
-    show-sql: true
 
   ai:
     openai:
