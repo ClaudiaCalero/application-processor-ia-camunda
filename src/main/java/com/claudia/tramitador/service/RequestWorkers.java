@@ -37,8 +37,8 @@ public class RequestWorkers {
                 );
 
         Classification result = aiClassifier.classify(request.getText());
-        boolean requiresReview =
-                result.score() > threshold
+        boolean reviewRequired =
+                result.score() < threshold
                 || result.category().name().equals("OTHER");
 
         request.setCategory(result.category().name());
@@ -46,7 +46,7 @@ public class RequestWorkers {
         request.setSummary(result.summary());
         request.setAmount(result.amount());
         request.setStatus(
-                requiresReview
+                reviewRequired
                 ? RequestStatus.IN_REVIEW
                         : RequestStatus.RECEIVED
         );
@@ -55,7 +55,7 @@ public class RequestWorkers {
         Map<String, Object> resultVariables = new HashMap<>();
         resultVariables.put("category", result.category().name());
         resultVariables.put("score", result.score());
-        resultVariables.put("requiresReview", requiresReview);
+        resultVariables.put("reviewRequired", reviewRequired);
 
         return resultVariables;
     }

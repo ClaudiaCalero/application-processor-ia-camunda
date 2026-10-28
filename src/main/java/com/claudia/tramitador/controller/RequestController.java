@@ -40,6 +40,6 @@ public class RequestController {
 
     @GetMapping
     public List<Request> list() {
-        return repository.findAll(Sort.by(Sort.Direction.DESC, "created"));
+        return repository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
     }
 }
