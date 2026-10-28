@@ -24,7 +24,7 @@ public class RequestWorkers {
         this.aiClassifier = aiClassifier;
     }
 
-    @JobWorker(type = "classify-request", fetchAllVariables = true)
+    @JobWorker(type = "classify-application", fetchAllVariables = true)
     public Map<String, Object> classifyRequest(ActivatedJob job) {
         Map<String, Object> variables = job.getVariablesAsMap();
         Long requestId = ((Number) variables.get("requestId")).longValue();
@@ -33,7 +33,8 @@ public class RequestWorkers {
                 .orElseThrow(() ->
                         new IllegalArgumentException(
                                 "Request not found: " + requestId
-                        );
+                        )
+                );
 
         Classification result = aiClassifier.classify(request.getText());
         boolean requiresReview =
@@ -59,7 +60,7 @@ public class RequestWorkers {
         return resultVariables;
     }
 
-    @JobWorker(type = "finalize-request", fetchAllVariables = true)
+    @JobWorker(type = "finalize-application", fetchAllVariables = true)
     public void finalizeRequest(ActivatedJob job) {
         Map<String, Object> variables = job.getVariablesAsMap();
         Long requestId = ((Number) variables.get("requestId")).longValue();
