@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 class AIClassifier {
-    orivate final ChatClient chatClient;
+    private final ChatClient chatClient;
 
     public AIClassifier(ChatClient.Builder builder) {
         this.chatClient = builder.build();
