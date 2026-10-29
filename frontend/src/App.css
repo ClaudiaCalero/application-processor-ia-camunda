@@ -125,6 +125,9 @@ h3 {
 }
 
 .metric {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   min-width: 0;
   padding: 23px;
   border: 1px solid var(--color-border);
@@ -133,19 +136,25 @@ h3 {
   box-shadow: var(--shadow-card);
 }
 
-.metric p {
-  margin-bottom: 14px;
+metric-label {
   color: var(--color-muted);
-  font-size: 13px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
 }
 
-.metric h2,
-.metric h3 {
-  margin-top: 0;
+.metric-strong {
   color: var(--color-text);
   font-size: 32px;
   font-weight: 750;
   letter-spacing: -1px;
+  line-height: 1.1;
+}
+
+.metric-caption {
+  color: var(--color-muted);
+  font-size: 13px;
 }
 
 .panel {
@@ -344,7 +353,7 @@ form button {
 
 .badge-primary,
 .status-received {
-  background: var(--color-primary);
+  background: var(--color-primary-light);
   color: var(--color-primary);
 }
 
@@ -362,6 +371,36 @@ footer {
   font-size: 12px;
   line-height: 1.8;
   text-align: center;
+}
+
+.request-cell strong,
+.request-cell span {
+  display: block;
+}
+
+.request-cell strong {
+  margin-bottom: 4px;
+  color: var(--color-text);
+}
+
+.form-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+}
+
+.character-count {
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.app-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 16px;
 }
 
 @media (max-width: 1000px) {

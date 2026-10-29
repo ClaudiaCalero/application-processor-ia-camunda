@@ -193,7 +193,7 @@ function App() {
           </article>
 
           <article className="metric">
-            <span className="metric-label">Awating review</span>
+            <span className="metric-label">Awaiting review</span>
             <strong>{loading ? '-' : reviewCount}</strong>
             <span className="metric-caption">Require human attention</span>
           </article>
