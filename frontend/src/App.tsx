@@ -23,7 +23,7 @@ function formatDate(value: string): string {
   return new Date(value).toLocaleDateString()
 }
 function formatAmount(amount: number | null): string {
-  if (amount == null) return '-'
+  if (amount == null || amount === 0) return '-'
 
   return new Intl.NumberFormat('en-GB', {
     style: 'currency',
@@ -63,7 +63,7 @@ function App() {
       setError(null)
   } catch {
     setError(
-        'Could not load requests. Make sure the Spring Boot backend is running'
+        'Could not load requests. Make sure the Spring Boot backend is running.'
     )
   } finally {
     setLoading(false)
@@ -128,7 +128,7 @@ function App() {
       if(!response.ok) {
         if (response.status === 400) {
           throw new Error(
-              'The request is invalid. Check that it contains no more that 5,000 characters.'
+              'The request is invalid. Check that it contains no more than 5,000 characters.'
           )
         }
         throw new Error(
@@ -180,7 +180,6 @@ function App() {
           </div>
 
           <div className="connection-status">
-            <span className="status-dot"/>
             Local environment
           </div>
         </header>
@@ -206,7 +205,7 @@ function App() {
 
           <article className="metric">
           <span className="metric-label">Received</span>
-          <strong>{loading ? '—' : receivedCount}</strong>
+          <strong>{loading ? '-' : receivedCount}</strong>
           <span className="metric-caption">Not yet completed</span>
         </article>
         </section>
@@ -336,7 +335,7 @@ function App() {
                         <td>{formatAmount(request.amount)}</td>
 
                         <td>
-                          <span className={`status status-${request.status.toLocaleLowerCase()}`}
+                          <span className={`status status-${request.status.toLowerCase()}`}
                           >
                             {getStatusLabel(request.status)}
                           </span>
@@ -358,14 +357,14 @@ function App() {
 
           {!loading && error && requests.length > 0 && (
               <p className="feedback warning" role="status">
-                The lastest refresh failed. Displaying the last loaded results.
+                The latest refresh failed. Displaying the last loaded results.
               </p>
           )}
         </section>
 
         <footer className="app-footer">
           <span>Request Manager</span>
-          <span>React · TypeScript · Spring Boot · Camunda 8 · PostgreAQL · Ollama</span>
+          <span>React · TypeScript · Spring Boot · Camunda 8 · PostgreSQL · Ollama</span>
         </footer>
       </main>
   )
