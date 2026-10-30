@@ -44,7 +44,9 @@ public class RequestWorkers {
         request.setCategory(result.category().name());
         request.setScore(result.score());
         request.setSummary(result.summary());
-        request.setAmount(result.amount());
+        request.setAmount(
+                result.amount() != null && result.amount() > 0 ? result.amount(): null
+            );
         request.setStatus(
                 reviewRequired
                 ? RequestStatus.IN_REVIEW
@@ -77,9 +79,8 @@ public class RequestWorkers {
             request.setCategory(category.toString());
         }
 
-        Object reviewed = variables.get("reviewedByPerson");
         request.setReviewedByPerson(
-                Boolean.TRUE.equals(reviewed)
+                Boolean.TRUE.equals(variables.get("reviewedByPerson"))
         );
 
         request.setStatus(RequestStatus.COMPLETED);

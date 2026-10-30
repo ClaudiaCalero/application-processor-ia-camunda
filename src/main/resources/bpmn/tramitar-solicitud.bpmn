@@ -14,7 +14,6 @@
     </bpmn:serviceTask>
     <bpmn:exclusiveGateway id="Gateway_0iqd85t" name="Does it require review?" default="Flow_0wou9l2">
       <bpmn:incoming>Flow_1ls6wf6</bpmn:incoming>
-      <bpmn:incoming>Flow_085gkr5</bpmn:incoming>
       <bpmn:outgoing>Flow_1v141h5</bpmn:outgoing>
       <bpmn:outgoing>Flow_0wou9l2</bpmn:outgoing>
     </bpmn:exclusiveGateway>
@@ -27,13 +26,14 @@
         <zeebe:userTask />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_1v141h5</bpmn:incoming>
-      <bpmn:outgoing>Flow_085gkr5</bpmn:outgoing>
+      <bpmn:outgoing>Flow_11j9er8</bpmn:outgoing>
     </bpmn:userTask>
     <bpmn:serviceTask id="Activity_1g16zz7" name="Complete application">
       <bpmn:extensionElements>
         <zeebe:taskDefinition type="finalize-application" />
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_0wou9l2</bpmn:incoming>
+      <bpmn:incoming>Flow_11j9er8</bpmn:incoming>
       <bpmn:outgoing>Flow_19vot78</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:endEvent id="Event_1qn16k1" name="End">
@@ -41,7 +41,7 @@
     </bpmn:endEvent>
     <bpmn:sequenceFlow id="Flow_19vot78" sourceRef="Activity_1g16zz7" targetRef="Event_1qn16k1" />
     <bpmn:sequenceFlow id="Flow_0wou9l2" name="No" sourceRef="Gateway_0iqd85t" targetRef="Activity_1g16zz7" />
-    <bpmn:sequenceFlow id="Flow_085gkr5" sourceRef="Activity_1djs58g" targetRef="Gateway_0iqd85t" />
+    <bpmn:sequenceFlow id="Flow_11j9er8" sourceRef="Activity_1djs58g" targetRef="Activity_1g16zz7" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="process-application">
@@ -84,16 +84,16 @@
           <dc:Bounds x="403" y="162" width="90" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_085gkr5_di" bpmnElement="Flow_085gkr5">
-        <di:waypoint x="510" y="290" />
-        <di:waypoint x="510" y="145" />
-      </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1v141h5_di" bpmnElement="Flow_1v141h5">
-        <di:waypoint x="530" y="145" />
-        <di:waypoint x="530" y="290" />
+        <di:waypoint x="520" y="155" />
+        <di:waypoint x="520" y="290" />
         <bpmndi:BPMNLabel>
-          <dc:Bounds x="541" y="212" width="18" height="14" />
+          <dc:Bounds x="531" y="217" width="18" height="14" />
         </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_19vot78_di" bpmnElement="Flow_19vot78">
+        <di:waypoint x="770" y="130" />
+        <di:waypoint x="872" y="130" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0wou9l2_di" bpmnElement="Flow_0wou9l2">
         <di:waypoint x="545" y="130" />
@@ -102,9 +102,10 @@
           <dc:Bounds x="600" y="112" width="15" height="14" />
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge id="Flow_19vot78_di" bpmnElement="Flow_19vot78">
-        <di:waypoint x="770" y="130" />
-        <di:waypoint x="872" y="130" />
+      <bpmndi:BPMNEdge id="Flow_11j9er8_di" bpmnElement="Flow_11j9er8">
+        <di:waypoint x="570" y="330" />
+        <di:waypoint x="720" y="330" />
+        <di:waypoint x="720" y="170" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>

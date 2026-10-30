@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
@@ -29,12 +30,18 @@ public class RequestController {
     @ResponseStatus(HttpStatus.CREATED)
     public Request createRequest(@Valid @RequestBody CreateRequest request) {
         Request req = repository.save(new Request(request.text()));
-        camunda.newCreateInstanceCommand()
-                .bpmnProcessId("process-application")
-                .latestVersion()
-                .variables(Map.of("requestId", req.getId()))
-                .send()
-                .join();
+        try {
+            camunda.newCreateInstanceCommand()
+                    .bpmnProcessId("process-application")
+                    .latestVersion()
+                    .variables(Map.of("requestId", req.getId()))
+                    .send()
+                    .join();
+        } catch (Exception e) {
+            repository.delete(req);
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE, "Workflow engine unavailable");
+        }
         return req;
     }
 
