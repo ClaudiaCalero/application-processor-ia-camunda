@@ -1,136 +1,93 @@
 <img width="1902" height="560" alt="image" src="https://github.com/user-attachments/assets/a9c17fd9-e6d8-4cf5-972b-061c0ea54c91" />
 
-# AI-Powered Request Processing
+# Request Manager
 
-A full-stack request management application built with **Java 21, Spring Boot, React, TypeScript, PostgreSQL, Camunda 8, and Ollama**.
+**AI-powered request processing with Spring Boot, Camunda 8 and a local language model.**
 
-This project combines AI-powered request classification, BPMN workflow orchestration, and human-in-the-loop review to demonstrate how administrative requests can be processed automatically while keeping people involved when needed.
+Users submit requests written in natural language (an invoice question, a complaint, an incident...). A locally running model classifies each request, extracts the amount and writes a short summary. A Camunda 8 BPMN process then decides whether the request can be completed automatically or needs a **human review**. A React dashboard shows the status of every request in near real time.
 
-## Overview
+> **Status:** working end to end on a local environment. It is a learning and demonstration project, not a production-ready system.
 
-Tramitador receives requests written in natural language, classifies them using a locally running language model, and coordinates their processing through Camunda 8.
+<!--
+Add screenshots here once they are in docs/images/:
 
-Depending on the classification and configured workflow rules, a request can proceed through automatic processing or be routed to a human review task in Camunda Tasklist. The application tracks request status as the workflow progresses.
-
-The project explores the integration of AI, backend development, database persistence, workflow automation, and a web-based user interface.
+![Dashboard](docs/images/dashboard.png)
+![BPMN process](docs/images/process.png)
+-->
 
 ## Features
 
-- **Request management:** Submit requests and retrieve stored records through a REST API and web interface.
-- **AI-powered classification:** Use Ollama and Qwen 2.5 3B to classify natural-language requests.
-- **Information extraction:** Extract relevant information, including monetary amounts when present.
-- **Workflow orchestration:** Coordinate processing steps using Camunda 8 and BPMN.
-- **Human-in-the-loop review:** Route requests requiring additional attention to human tasks in Camunda Tasklist.
-- **Status tracking:** Display request categories, confidence scores, extracted amounts, and processing statuses.
-- **Persistent storage:** Store request information and processing results in PostgreSQL.
-- **Local AI inference:** Run the language model locally without relying on a paid cloud AI API.
+- **REST API** to create requests and list them (`POST` / `GET /api/requests`).
+- **Local AI classification** with Ollama and Qwen 2.5 3B: category, confidence score, extracted amount and a one-line summary. No data leaves your machine.
+- **Workflow orchestration** with Camunda 8 and BPMN, using job workers inside the Spring Boot application.
+- **Human-in-the-loop review:** requests with low confidence, or classified as `OTHER`, wait for a person in Camunda Tasklist.
+- **PostgreSQL persistence** for requests and their processing results.
+- **React + TypeScript dashboard** with request metrics, a submission form and a table that refreshes every five seconds.
 
-## How It Works
+## How it works
 
-1. **Request submission:** A user submits a request through the React frontend or REST API.
-2. **Persistence:** Spring Boot stores the request in PostgreSQL.
-3. **Workflow initiation:** Camunda 8 orchestrates the request-processing lifecycle.
-4. **AI classification:** A Spring Boot worker sends the request text to Ollama and processes the model's response.
-5. **Routing decision:** The workflow determines whether the request can proceed automatically or requires human review.
-6. **Human review:** Requests requiring intervention wait for a user task to be completed in Camunda Tasklist.
-7. **Finalisation:** The workflow continues, and the backend updates the request status.
-8. **Frontend update:** The result becomes visible in the request management interface.
-
-## Architecture
-
-```text
-                         User
-                          |
-                          v
-                React + TypeScript
-                     Frontend
-                          |
-                          v
-                 Spring Boot REST API
-                          |
-                  +-------+-------+
-                  |               |
-                  v               v
-              PostgreSQL      Camunda 8
-                                  |
-                                  v
-                         BPMN Process Execution
-                                  |
-                                  v
-                         Spring Boot Workers
-                                  |
-                                  v
-                           Ollama + Qwen
-                                  |
-                                  v
-                         Classification Result
-                                  |
-                                  v
-                            BPMN Routing
-                           /            \
-                          v              v
-                   Automatic         Human Review
-                   Processing        Camunda Tasklist
-                          \              /
-                           v            v
-                              Finalisation
-                                   |
-                                   v
-                            Updated Status
+```mermaid
+flowchart LR
+    A([Application received]) --> B[Classify and extract]
+    B --> C{Does it require review?}
+    C -- No --> E[Complete application]
+    C -- Yes --> D[Review Application<br/>human task]
+    D --> E
+    E --> F([End])
 ```
 
-## Workflow Design with Camunda Modeler
+1. The client sends a request to `POST /api/requests`. The API stores it in PostgreSQL with status `RECEIVED` and starts the BPMN process `process-application`, passing the request ID.
+2. The **`classify-application`** worker loads the request, asks the local model for a category (`INVOICE`, `COMPLAINT`, `INCIDENT` or `OTHER`), a confidence score, an amount and a summary, and saves them.
+3. The worker sets `reviewRequired` to `true` when the score is below the configured threshold (`tramitador.umbral`, default `0.8`) or the category is `OTHER`. In that case the status becomes `IN_REVIEW`.
+4. The exclusive gateway routes the request: straight to completion, or to the **Review Application** user task.
+5. The **`finalize-application`** worker marks the request as `COMPLETED` and records whether a person reviewed it.
 
-The request-processing lifecycle is modelled using BPMN 2.0 in Camunda Modeler. The workflow coordinates AI-based classification, automatic processing, and human review through Camunda Tasklist.
+### Architecture
 
-<p align="center">
-  <img width="1160" alt="BPMN request-processing workflow designed in Camunda Modeler" src="https://github.com/user-attachments/assets/7d1e10d4-4219-429f-a4cc-27d56231ac48" />
-</p>
+```mermaid
+flowchart TD
+    UI[React dashboard<br/>:5173] -->|REST| API[Spring Boot API<br/>:8081]
+    API --> DB[(PostgreSQL<br/>:5432)]
+    API -->|start process instance| C8[Camunda 8 Run<br/>:8080]
+    C8 -->|jobs| W[Job workers<br/>inside Spring Boot]
+    W --> AI[Ollama + Qwen 2.5 3B<br/>:11434]
+    W --> DB
+    P[Person] -->|Tasklist| C8
+```
 
-The process routes requests according to the configured workflow rules. Requests requiring human intervention wait for review in Tasklist before the process continues.
-
-## Technology Stack
+## Technology stack
 
 | Technology | Purpose |
 |---|---|
-| Java 21 | Backend programming |
-| Spring Boot | REST API and application services |
-| Spring Data JPA / Hibernate | Database persistence |
-| PostgreSQL | Relational data storage |
-| Camunda 8 | BPMN workflow orchestration |
-| Camunda Tasklist | Human task management |
-| Camunda Modeler | BPMN process design |
-| Ollama | Local language model execution |
-| Qwen 2.5 3B | Request classification |
-| React | Frontend interface |
-| TypeScript | Frontend type safety |
-| Vite | Frontend development and build tooling |
-| Maven | Backend dependency management and builds |
-| Docker | Local service containerisation |
+| Java 21, Spring Boot 4.1 | Backend and REST API |
+| Spring Data JPA / Hibernate | Persistence |
+| PostgreSQL | Relational database |
+| Spring AI 2.0 + Ollama | Calling the local language model |
+| Qwen 2.5 3B (`qwen2.5:3b`) | Classification and summarisation |
+| Camunda 8 (Spring Boot starter 8.10) | Workflow engine and job workers |
+| Camunda Modeler | BPMN design (process modelled for Camunda 8.9) |
+| React 19, TypeScript, Vite | Frontend dashboard |
+| Maven (wrapper included) | Build |
 
-## Example Use Cases
-
-| Example request | Expected behaviour |
-|---|---|
-| Duplicate electricity bill charge with a reimbursement request | Classify as an invoice-related request and extract the amount when available |
-| Complaint about an unresolved issue | Identify the complaint category |
-| Request with an unfamiliar or ambiguous purpose | Route for human review when the workflow rules require it |
-| Request requiring additional validation | Wait for the corresponding human task to be completed in Tasklist |
-
-Classification results depend on the input text and model response. The predicted category and confidence score do not guarantee that a classification is correct.
-
-## Getting Started
+## Getting started
 
 ### Prerequisites
 
-Install the following tools:
-
 - JDK 21
-- Docker Desktop
-- Node.js and npm
-- Ollama
-- Camunda 8 Run compatible with the deployed BPMN process
-- Git
+- Docker (for PostgreSQL)
+- [Ollama](https://ollama.com)
+- Camunda 8 Run (local Camunda 8 cluster) and Camunda Modeler
+- Node.js (a recent LTS version, see [Vite's requirements](https://vite.dev))
+
+Default ports:
+
+| Service | Port |
+|---|---:|
+| React dashboard (Vite) | `5173` |
+| Spring Boot API | `8081` |
+| PostgreSQL | `5432` |
+| Ollama | `11434` |
+| Camunda 8 Run (Operate, Tasklist) | `8080` |
 
 ### 1. Clone the repository
 
@@ -141,188 +98,180 @@ cd application-processor-ia-camunda
 
 ### 2. Start PostgreSQL
 
-If the existing development container is available, start it with:
-
-```powershell
-docker start pg-tramitador
+```bash
+docker run --name pg-tramitador \
+  -e POSTGRES_DB=tramitador \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -p 5432:5432 \
+  -d postgres:16
 ```
 
-Otherwise, create a PostgreSQL container using the database name, username, password, and port configured in the backend.
+These credentials are for local development only. If the container already exists, run `docker start pg-tramitador`.
 
-Ensure the database configuration matches your local environment.
-
-### 3. Start Ollama
-
-Download the model if it is not already installed:
+### 3. Start Ollama and download the model
 
 ```bash
 ollama pull qwen2.5:3b
 ```
 
-Ensure Ollama is running and the model is available locally.
+Make sure Ollama is running at `http://localhost:11434`.
 
-Default Ollama endpoint:
+### 4. Start Camunda 8 Run and deploy the process
 
-```text
-http://localhost:11434
+1. Start Camunda 8 Run following the official instructions.
+2. Open `src/main/resources/bpmn/tramitar-solicitud.bpmn` in Camunda Modeler.
+3. Deploy it to your local cluster (the rocket icon in the bottom bar).
+
+The application does not deploy the BPMN file by itself. The process ID is `process-application` and the workers expect the task types `classify-application` and `finalize-application`.
+
+### 5. Run the backend
+
+```bash
+./mvnw spring-boot:run        # Windows: .\mvnw.cmd spring-boot:run
 ```
 
-### 4. Start Camunda 8 Run
+Check that it is up: `http://localhost:8081/api/health` should return `{"status":"OK", ...}`.
 
-Start your configured Camunda 8 Run environment and confirm that the Orchestration Cluster is healthy.
+### 6. Run the frontend
 
-Use Camunda Modeler to inspect or deploy the BPMN process required by the application. The deployed process must match the worker types and configuration expected by the backend.
-
-Open Camunda Tasklist to access tasks requiring human review.
-
-### 5. Configure and start the backend
-
-Check the application configuration for the PostgreSQL connection, Camunda connection, Ollama endpoint, and server port.
-
-On Windows, run the backend from the project root:
-
-```powershell
-.\mvnw.cmd spring-boot:run
-```
-
-The REST API uses port `8081` in the local development setup.
-
-### 6. Start the frontend
-
-Open a separate terminal:
-
-```powershell
+```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-Open the local URL printed by Vite, usually:
+Open `http://localhost:5173`. The API URL defaults to `http://localhost:8081` and can be changed with the `VITE_API_URL` environment variable.
 
-```text
-http://localhost:5173
-```
+### 7. Try it
 
-Keep the required backend services running while testing the application.
+- *"I received an invoice for 150 euros that appears to be incorrect."* is classified as an invoice and completes automatically.
+- *"I need help with something, but I am not sure what kind of request this is."* is classified as `OTHER`, so it goes to human review.
 
-## API Endpoints
+## Human review
+
+When a request needs review, its status is `IN_REVIEW` and a **Review Application** task appears in Camunda Tasklist (`http://localhost:8080/tasklist`). Open it, assign it to yourself and complete it. The process then runs the final step: the request becomes `COMPLETED` and the dashboard shows **Human review: Yes**.
+
+The review task does not have a form yet, so a reviewer can approve a request but cannot correct its category (see the roadmap).
+
+## API
 
 ### Create a request
 
 `POST /api/requests`
 
-Example request body:
-
 ```json
 {
-  "text": "I received an electricity bill for €350 and believe I was charged twice."
+  "text": "I received an invoice for 150 euros that appears to be incorrect."
 }
 ```
 
-PowerShell example:
-
-```powershell
-$body = @{
-    text = "I received an electricity bill for €350 and believe I was charged twice."
-} | ConvertTo-Json
-
-Invoke-RestMethod `
-    -Uri "http://localhost:8081/api/requests" `
-    -Method Post `
-    -ContentType "application/json" `
-    -Body $body
+```bash
+curl -X POST http://localhost:8081/api/requests \
+  -H "Content-Type: application/json" \
+  -d '{"text": "I received an invoice for 150 euros that appears to be incorrect."}'
 ```
 
-### Retrieve requests
-
-`GET /api/requests`
-
 ```powershell
-Invoke-RestMethod -Uri "http://localhost:8081/api/requests"
+Invoke-RestMethod -Uri "http://localhost:8081/api/requests" -Method Post `
+  -ContentType "application/json" `
+  -Body (@{ text = "I received an invoice for 150 euros that appears to be incorrect." } | ConvertTo-Json)
 ```
 
-The API returns stored requests and their available processing information.
+The request text is required and limited to 5,000 characters (`400` otherwise). The response is the saved request. Classification fields are filled in a few seconds later, once the workflow has run.
 
-## Human-in-the-Loop Processing
+### List requests
 
-Not every request should be processed automatically.
+`GET /api/requests` returns all requests, newest first.
 
-When the configured workflow rules determine that additional review is needed, the process routes the request to a human task in Camunda Tasklist.
+Example of a processed request (illustrative; actual output depends on the model):
 
-The human-review lifecycle is:
+```json
+{
+  "id": 2,
+  "text": "I received an invoice for 150 euros that appears to be incorrect.",
+  "category": "INVOICE",
+  "score": 1.0,
+  "summary": "Request about an invoice for 150 euros",
+  "amount": 150.0,
+  "status": "COMPLETED",
+  "reviewedByPerson": false,
+  "createdAt": "2026-10-28T10:15:30Z"
+}
+```
 
-1. The request is classified.
-2. The workflow routes it to a human task when required.
-3. The process waits for the task to be completed.
-4. The workflow continues and the backend updates the request status.
+Statuses: `RECEIVED`, `IN_REVIEW`, `COMPLETED`.
 
-This approach combines AI-assisted processing with human oversight instead of treating every model prediction as a final decision.
+### Health check
 
-## Local Development Ports
+`GET /api/health`
 
-| Service | Default port |
-|---|---:|
-| React / Vite frontend | `5173` |
-| Spring Boot API | `8081` |
-| Camunda 8 gateway | `8080` |
-| PostgreSQL | `5432` |
-| Ollama | `11434` |
+## Configuration
 
-These are the ports used by the current local development setup. Actual values depend on the local configuration.
+Main settings in `src/main/resources/application.yaml`:
+
+| Property | Default | Description |
+|---|---|---|
+| `server.port` | `8081` | API port |
+| `spring.datasource.url` | `jdbc:postgresql://localhost:5432/tramitador` | Database connection |
+| `spring.datasource.username` / `password` | `postgres` / `postgres` | Local development credentials |
+| `spring.ai.ollama.base-url` | `http://localhost:11434` | Ollama endpoint |
+| `spring.ai.ollama.chat.options.model` | `qwen2.5:3b` | Model used for classification |
+| `tramitador.umbral` | `0.8` | Confidence threshold below which a request goes to review |
+
+No Camunda settings are defined: the application relies on the client defaults, which work with a default local Camunda 8 Run. For any other setup, add the relevant `camunda.client.*` properties (see the Camunda documentation).
+
+## Project structure
+
+```text
+.
+├── src/main/java/com/claudia/tramitador/
+│   ├── controller/   REST controllers (requests, health)
+│   ├── dto/          Request payloads
+│   ├── entity/       JPA entity (Request)
+│   ├── enums/        RequestStatus, RequestCategory
+│   ├── model/        Classification (AI response)
+│   ├── repository/   Spring Data repository
+│   └── service/      AIClassifier and Camunda job workers
+├── src/main/resources/
+│   ├── application.yaml
+│   └── bpmn/tramitar-solicitud.bpmn
+├── src/test/         Tests
+├── frontend/         React + TypeScript dashboard (Vite)
+└── pom.xml
+```
 
 ## Testing
 
-Run the backend test suite:
-
-```powershell
-.\mvnw.cmd test
+```bash
+./mvnw test        # Windows: .\mvnw.cmd test
 ```
 
-Build the frontend:
+At the moment there is a single context-load test, which needs PostgreSQL and Camunda to be running. Unit tests for the workers (with a mocked classifier) and an evaluation of the model against a set of sample requests are on the roadmap.
 
-```powershell
-cd frontend
-npm run build
-```
+## Known limitations
 
-Useful areas for testing include:
+- **Small local model:** Qwen 2.5 3B is fast and private, but its confidence scores and extracted values are only indicative. That is why the review rule also sends every `OTHER` request to a person.
+- **Workflow start is not transactional:** the request is saved before the process starts. If Camunda is unavailable at that moment, the request stays in `RECEIVED` with no process instance.
+- **No form in the review task yet,** so categories cannot be corrected from Tasklist.
+- **Local only:** there is no authentication, no Docker setup for the application itself and no production configuration.
 
-- Request creation and retrieval.
-- Persistence and validation.
-- AI classification and extracted values.
-- Routing decisions and confidence thresholds.
-- Camunda worker execution and process variables.
-- Human task completion and final status updates.
-- Error handling when a dependent service is unavailable.
+## Roadmap
 
-## Project Status
+- [x] REST API with PostgreSQL persistence
+- [x] Local AI classification with Ollama
+- [x] BPMN workflow with classification and finalisation workers
+- [x] Human review through Camunda Tasklist
+- [x] React dashboard
+- [ ] Review form to correct the category
+- [ ] Handle a failed workflow start
+- [ ] Worker unit tests and a model evaluation set
+- [ ] Dockerfile and `docker-compose` for the whole stack
+- [ ] CI with GitHub Actions
+- [ ] Screenshots and a short demo video
 
-The application is under active development. Request submission, AI classification, workflow processing, human review through Tasklist, status updates, and the web interface have been exercised in the local development environment.
+## About this project
 
-Potential future improvements include expanded automated tests, more robust error handling, improved validation, and additional integrations.
+This is a learning project about how a backend application is designed, built and debugged: REST APIs, JPA, BPMN workflows and workers, human-in-the-loop processing and integrating a locally hosted language model. AI assistants, tutorials and documentation were used as learning resources, with the goal of understanding the implementation and the decisions behind it.
 
-## Disclaimer
-
-This project is intended for learning and demonstration purposes. It is not a production-ready request-processing system.
-
-AI classifications and extracted information may be inaccurate. The application does not perform real financial transactions or issue actual reimbursements.
-
-## Contact
-
-**Claudia Calero**
-
-- [GitHub](https://github.com/ClaudiaCalero)
-- [LinkedIn](https://www.linkedin.com/in/claudia-calero/)
-
-## License
-
-This project is intended for educational and development purposes. Check the repository for the applicable license before reusing or distributing the code.
-
-
-Further improvements may include expanded automated tests, more robust error handling, improved validation, and additional integrations.
-
-## Disclaimer
-
-This project is intended for learning and demonstration purposes. It is not a production-ready request-processing system.
-
-AI classifications and extracted information may be inaccurate. The application does not perform real financial transactions or issue actual reimbursements.
+AI-generated classifications and extracted values can be wrong and should be validated before being used for any consequential decision.
