@@ -2,18 +2,13 @@
 
 # Request Manager
 
+![CI](https://github.com/ClaudiaCalero/application-processor-ia-camunda/actions/workflows/ci.yml/badge.svg)
+
 **AI-powered request processing with Spring Boot, Camunda 8 and a local language model.**
 
 Users submit requests written in natural language (an invoice question, a complaint, an incident...). A locally running model classifies each request, extracts the amount and writes a short summary. A Camunda 8 BPMN process then decides whether the request can be completed automatically or needs a **human review**. A React dashboard shows the status of every request in near real time.
 
 > **Status:** working end to end on a local environment. It is a learning and demonstration project, not a production-ready system.
-
-<!--
-Add screenshots here once they are in docs/images/:
-
-![Dashboard](docs/images/dashboard.png)
-![BPMN process](docs/images/process.png)
--->
 
 ## Features
 
@@ -68,6 +63,10 @@ flowchart TD
 | Camunda Modeler | BPMN design (process modelled for Camunda 8.9) |
 | React 19, TypeScript, Vite | Frontend dashboard |
 | Maven (wrapper included) | Build |
+| JUnit 5, Mockito, AssertJ | Unit and web-layer tests |
+| Testcontainers | Repository tests against a real PostgreSQL |
+| Vitest, Testing Library | Frontend tests |
+| GitHub Actions | Continuous integration |
 
 ## Getting started
 
@@ -236,23 +235,36 @@ No Camunda settings are defined: the application relies on the client defaults, 
 ├── src/main/resources/
 │   ├── application.yaml
 │   └── bpmn/tramitar-solicitud.bpmn
-├── src/test/         Tests
+├── src/test/         Unit, web-layer and repository tests
 ├── frontend/         React + TypeScript dashboard (Vite)
+├── .github/workflows/ci.yml   CI pipeline
 └── pom.xml
 ```
 
 ## Testing
 
+The project has **42 automated tests** that run on every push through GitHub Actions.
+
+| Layer | Tests | What it covers | Tools |
+|---|---:|---|---|
+| Workers (unit) | 15 | Review rule (score below threshold, category `OTHER`), the threshold boundary, amount and summary handling, model failure, retries of the same job | JUnit 5, Mockito, AssertJ |
+| REST controller | 14 | Validation limits (5000 / 5001 characters, blank, malformed JSON), process start, `503` when Camunda is down, the JSON contract used by the frontend, CORS | Spring MockMvc |
+| Repository | 5 | Default values, enum stored as text, newest-first ordering, column lengths | Testcontainers (PostgreSQL) |
+| Frontend | 8 | Table formatting, metric cards, error handling, form submission, polling | Vitest, Testing Library |
+
+Run them locally:
+
 ```bash
-./mvnw test        # Windows: .\mvnw.cmd test
+./mvnw test                  # Windows: .\mvnw.cmd test (Docker must be running for the repository tests)
+cd frontend && npm test      # frontend
 ```
 
-At the moment there is a single context-load test, which needs PostgreSQL and Camunda to be running. Unit tests for the workers (with a mocked classifier) and an evaluation of the model against a set of sample requests are on the roadmap.
+The repository tests start a throwaway PostgreSQL container and never touch the development database.
 
 ## Known limitations
 
 - **Small local model:** Qwen 2.5 3B is fast and private, but its confidence scores and extracted values are only indicative. That is why the review rule also sends every `OTHER` request to a person.
-- **Workflow start is not transactional:** the request is saved before the process starts. If Camunda is unavailable at that moment, the request stays in `RECEIVED` with no process instance.
+- **Workflow start is compensated, not transactional:** if Camunda is unavailable when a request is created, the API deletes the saved request and answers `503`. A crash between saving and starting the process could still leave a request in `RECEIVED`.
 - **No form in the review task yet,** so categories cannot be corrected from Tasklist.
 - **Local only:** there is no authentication, no Docker setup for the application itself and no production configuration.
 
@@ -264,11 +276,10 @@ At the moment there is a single context-load test, which needs PostgreSQL and Ca
 - [x] Human review through Camunda Tasklist
 - [x] React dashboard
 - [ ] Review form to correct the category
-- [ ] Handle a failed workflow start
-- [ ] Worker unit tests and a model evaluation set
-- [ ] Dockerfile and `docker-compose` for the whole stack
-- [ ] CI with GitHub Actions
-- [ ] Screenshots and a short demo video
+- [x] Handle a failed workflow start
+- [x] Worker, controller, repository and frontend tests
+- [ ] Model evaluation set (`scripts/evaluate.ps1`)
+- [x] CI with GitHub Actions
 
 ## About this project
 
